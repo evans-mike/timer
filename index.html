@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Time Timer (Theme Button + Dark Mode Switch)</title>
+  <title>Time Timer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Favicon -->
@@ -52,20 +52,12 @@
       padding: 1rem;
     }
 
-    /* TOP BAR: refresh button, title, theme button, dark-mode container */
+    /* TOP BAR: refresh icon, title, dark-mode container */
     .top-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
-
-    /* A small container for the left side (Refresh + Theme) if you like */
-    .left-buttons {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
     .icon-button {
       background: none;
       border: none;
@@ -78,22 +70,6 @@
     .icon-button:hover {
       color: #006AE6;
     }
-
-    /* A standard button for theme toggling */
-    .theme-button {
-      font-size: 0.9rem;
-      padding: 0.4rem 0.8rem;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      color: #fff;
-      background-color: #007AFF;
-      transition: background 0.2s ease-in-out;
-    }
-    .theme-button:hover {
-      background-color: #006AE6;
-    }
-
     .title {
       font-size: 1.4rem;
       font-weight: 600;
@@ -114,8 +90,8 @@
     /* TOGGLE SWITCH (iOS style, bigger) */
     .toggle-switch {
       position: relative;
-      width: 60px;  /* bigger width */
-      height: 34px; /* bigger height */
+      width: 60px;  /* was 50px */
+      height: 34px; /* was 28px */
     }
     .toggle-switch input {
       display: none; /* hide the actual checkbox */
@@ -133,8 +109,8 @@
       position: absolute;
       top: 3px;
       left: 3px;
-      width: 28px;
-      height: 28px;
+      width: 28px;  /* was 24px */
+      height: 28px; /* was 24px */
       background: #fff;
       border-radius: 50%;
       transition: transform 0.2s;
@@ -143,7 +119,7 @@
       background: #007AFF; /* iOS blue */
     }
     .toggle-switch input:checked + label::after {
-      transform: translateX(26px);
+      transform: translateX(26px); /* was 22px; adjust for bigger width */
     }
 
     /* CONTROLS (time input) */
@@ -218,9 +194,6 @@
     body.dark-mode .icon-button {
       color: #aaa;
     }
-    body.dark-mode .theme-button {
-      background-color: #444;
-    }
     body.dark-mode .time-input select {
       background-color: #333;
       color: #eee;
@@ -233,23 +206,16 @@
 <div class="container">
   <!-- TOP BAR (row 1) -->
   <div class="top-bar">
-    <div class="left-buttons">
-      <!-- Refresh button -->
-      <button id="refreshButton" class="icon-button" aria-label="Refresh">
-        &#x21BB;
-      </button>
-      <!-- Theme toggle button -->
-      <button id="themeToggleBtn" class="theme-button">
-        Theme
-      </button>
-    </div>
+    <!-- Refresh button -->
+    <button id="refreshButton" class="icon-button" aria-label="Refresh">
+      &#x21BB;
+    </button>
 
     <!-- Title -->
     <div class="title">Time Timer</div>
 
     <!-- Dark mode container with label + bigger toggle switch -->
     <div class="dark-mode-container">
-      <span class="dark-mode-label">Dark Mode</span>
       <div class="toggle-switch">
         <input type="checkbox" id="darkModeToggle" />
         <label for="darkModeToggle"></label>
@@ -346,30 +312,14 @@
   const STORAGE_TIME_KEY  = 'timerValue'; // "MM:SS"
   const STORAGE_THEME_KEY = 'darkMode';   // "true" or "false"
 
-  // Two color themes for the wedge
-  const lightModernColors = {
-    idle:     "#007ACC",
-    running:  "#267F99",
-    paused:   "#9C4CAD",
-    finished: "#B24747"
-  };
-  const darkModernColors = {
-    idle:     "#569CD6",
-    running:  "#4EC9B0",
-    paused:   "#C586C0",
-    finished: "#D16969"
-  };
-
-  // We'll toggle between these two with the theme button
-  let stateColors = lightModernColors;
-
   // Timer states
-  let timerState = "idle";
-  let totalTime = 0;
-  let timeRemaining = 0;
-  let countdownInterval = null;
-
-  // No icons
+  // (No icons if we prefer them empty)
+  const stateColors = {
+    idle:     "#007ACC", // Light Modern "blue"
+    running:  "#267F99", // teal-ish
+    paused:   "#9C4CAD", // purple
+    finished: "#B24747"  // red-ish
+  };
   const stateIcons = {
     idle:     "",
     running:  "",
@@ -377,9 +327,13 @@
     finished: ""
   };
 
+  let timerState = "idle";
+  let totalTime = 0;
+  let timeRemaining = 0;
+  let countdownInterval = null;
+
   // Grab elements
   const refreshButton    = document.getElementById('refreshButton');
-  const themeToggleBtn   = document.getElementById('themeToggleBtn');
   const darkModeToggle   = document.getElementById('darkModeToggle');
   const minutesSelect    = document.getElementById('minutesSelect');
   const secondsSelect    = document.getElementById('secondsSelect');
@@ -401,26 +355,28 @@
     secondsSelect.appendChild(optSec);
   }
 
+  // On page load
   function init() {
-    // Restore dark mode preference
+    // 1) Restore dark mode preference
     const storedDarkMode = localStorage.getItem(STORAGE_THEME_KEY);
     if (storedDarkMode === 'true') {
       document.body.classList.add('dark-mode');
       darkModeToggle.checked = true;
     }
 
-    // Default time or last used
+    // 2) Restore last used time or default
     const storedTime = localStorage.getItem(STORAGE_TIME_KEY);
     if (storedTime) {
       const [mm, ss] = storedTime.split(':').map(Number);
       minutesSelect.value = mm;
       secondsSelect.value = ss;
     } else {
-      // Default 20:00
+      // Default to 20:00
       minutesSelect.value = 20;
       secondsSelect.value = 0;
     }
 
+    // Idle state => set color, etc.
     setTimerState("idle");
     updateTimerFromDropdown();
     updateTimerTextAndArc(timeRemaining);
@@ -553,17 +509,6 @@
   // If user changes the dropdown while idle/finished
   minutesSelect.addEventListener('change', updateTimerFromDropdown);
   secondsSelect.addEventListener('change', updateTimerFromDropdown);
-
-  // THEME TOGGLE: Switch between lightModernColors & darkModernColors
-  themeToggleBtn.addEventListener('click', () => {
-    if (stateColors === lightModernColors) {
-      stateColors = darkModernColors;
-    } else {
-      stateColors = lightModernColors;
-    }
-    // Refresh the wedge color for current state
-    setTimerState(timerState);
-  });
 
   // On load
   init();
