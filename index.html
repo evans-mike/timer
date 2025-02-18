@@ -2,8 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Time Timer (Dark Mode Saved)</title>
+  <title>Time Timer (Tap Circle, Traffic Light Colors, Icons)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Favicon (stopwatch icon). 
+  Could be .png, .ico, or .svg; just adjust the type accordingly. -->
+  <link rel="icon" href="timer.png" type="image/png" />
+
+  <!-- Apple touch icon placeholder. 
+      iOS devices will use this when the user adds the site to their home screen. -->
+  <link rel="apple-touch-icon" href="timer.png" />
+
+  <!-- Example: iOS Wheel Picker CSS (if you're using a library) -->
+  <!-- <link rel="stylesheet" href="https://unpkg.com/ios-wheel-picker/dist/iosWheelPicker.min.css" /> -->
+     
   <style>
     /* RESET & BOX-SIZING */
     *, *::before, *::after {
@@ -23,7 +34,7 @@
                    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
       background-color: #F9F9F9;
       color: #222;
-      overflow-x: hidden; /* hide any horizontal scroll */
+      overflow-x: hidden; /* hide horizontal scroll if any */
     }
 
     /* A "dark-mode" class toggles a darker theme */
@@ -34,15 +45,47 @@
 
     /* GRID CONTAINER */
     .container {
+      /* If you want the circle area to fill the remaining space,
+        you can keep grid-template-rows: auto auto 1fr, etc. */
       display: grid;
       grid-template-rows: auto auto 1fr;
       gap: 1rem;
       min-height: 100vh;
-      max-height: 900px;   /* restrict max height on large desktops */
-      max-width: 500px;    /* restrict overall container width on desktops */
-      margin: 0 auto;      /* center horizontally */
+      max-width: 500px;
+      margin: 0 auto;
       padding: 1rem;
     }
+
+    /* The circle area row, centered content */
+    .circle-area {
+      /* Make the row itself a flex container that centers items */
+      display: flex;
+      align-items: center;    /* vertical centering within the row */
+      justify-content: center;/* horizontal centering within the row */
+      position: relative;     /* so we can absolutely position the icon */
+      cursor: pointer;        /* keep the circle clickable */
+    }
+
+    /* The <svg> that shows the circle. Margin auto for extra safety. */
+    .circle-area svg {
+      display: block;
+      width: 95vw;       /* up to 95% of viewport width on mobile */
+      max-width: 450px;  /* but never exceed 450px on desktop */
+      height: auto;
+      margin: 0 auto;    /* center horizontally if needed */
+    }
+
+    /* The icon in the center of the circle */
+    .circle-icon {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none; /* so taps/clicks go "through" to the circle */
+      font-size: 3rem;
+      color: #000; /* or whichever color you prefer */
+    }
+
 
     /* TOP BAR: refresh icon, title, dark-mode toggle */
     .top-bar {
@@ -108,7 +151,7 @@
       transform: translateX(22px);
     }
 
-    /* CONTROLS: time input + Start/Pause/Resume button */
+    /* CONTROLS: just time input now (no Start button) */
     .controls {
       display: flex;
       flex-wrap: wrap;
@@ -137,21 +180,6 @@
       color: #444;
     }
 
-    /* BUTTON */
-    button {
-      font-size: 0.9rem;
-      padding: 0.5rem 1rem;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      color: #fff;
-      background-color: #007AFF; /* iOS-like “system blue” */
-      transition: background 0.2s ease-in-out;
-    }
-    button:hover {
-      background-color: #006AE6; /* darken on hover */
-    }
-
     /* CIRCLE AREA */
     .circle-area {
       display: flex;
@@ -159,16 +187,29 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      cursor: pointer; /* show pointer on hover, since it's tappable */
+      position: relative; /* so we can position icons absolutely */
     }
 
     /* Make the circle fill nearly the full width on mobile,
-       but never exceed 450px on desktop (adjust as you like). */
+       but never exceed 450px on desktop. */
     .circle-area svg {
       display: block;
       width: 95vw;       /* ~95% of the viewport width on mobile */
       max-width: 450px;  /* do not exceed 450px in diameter on desktop */
       height: auto;
       margin: 0 auto;
+    }
+
+    /* The icon in the center of the circle */
+    .circle-icon {
+      position: absolute;
+      font-size: 3rem;
+      pointer-events: none; /* ignore clicks on the icon itself */
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #000; /* black icon stands out against bright circle colors */
     }
 
     /* TIMER TEXT BELOW THE CIRCLE */
@@ -182,9 +223,6 @@
     /* DARK MODE TWEAKS */
     body.dark-mode .icon-button {
       color: #aaa; 
-    }
-    body.dark-mode button {
-      background-color: #444;
     }
     body.dark-mode .time-input select {
       background-color: #333;
@@ -216,37 +254,37 @@
 
   <!-- CONTROLS (row 2) -->
   <div class="controls">
-    <!-- Streamlined time input: two selects with a colon in between -->
+    <!-- Time input: two selects with a colon in between -->
     <div class="time-input">
       <select id="minutesSelect"></select>
       <span>:</span>
       <select id="secondsSelect"></select>
     </div>
-    <!-- Toggling button (Start, Pause, Resume) -->
-    <button id="toggleButton">Start</button>
   </div>
 
-  <!-- CIRCLE AREA (row 3) -->
-  <div class="circle-area">
-    <!-- We keep the same viewBox to maintain the arc logic -->
+  <!-- CIRCLE AREA (row 3) - tap to Start/Pause/Resume -->
+  <div class="circle-area" id="circleArea">
     <svg id="circleSvg" viewBox="0 0 200 200">
       <!-- Mirroring group -->
       <g transform="scale(-1,1) translate(-200,0)">
-        <!-- Background circle (gray) -->
+        <!-- Background circle (we won't change its fill) -->
         <circle
+          id="circleBackground"
           cx="100"
           cy="100"
           r="90"
           fill="#EAEAEA"
         />
-        <!-- Red arc (pie slice) that shrinks over time -->
+        <!-- Arc that shrinks over time; color changes per state -->
         <path
           id="circleForeground"
-          fill="red"
+          fill="#FF3B30"  <!-- default red for idle -->
           d=""
         />
       </g>
     </svg>
+    <!-- Icon in the center of the circle -->
+    <div class="circle-icon" id="circleIcon">&#x23F9;</div>
     <!-- Countdown text below the circle -->
     <div class="timer-text" id="timerText">--:--</div>
   </div>
@@ -257,21 +295,37 @@
   let timerState = "idle";
 
   // We'll store the last used time and dark mode preference in localStorage
-  const STORAGE_TIME_KEY = 'timerValue';  // "MM:SS"
-  const STORAGE_THEME_KEY = 'darkMode';   // "true" or "false"
+  const STORAGE_TIME_KEY  = 'timerValue';  // "MM:SS"
+  const STORAGE_THEME_KEY = 'darkMode';    // "true" or "false"
 
   // Elements
   const refreshButton    = document.getElementById('refreshButton');
   const darkModeToggle   = document.getElementById('darkModeToggle');
   const minutesSelect    = document.getElementById('minutesSelect');
   const secondsSelect    = document.getElementById('secondsSelect');
-  const toggleButton     = document.getElementById('toggleButton');
+  const circleArea       = document.getElementById('circleArea');
   const timerText        = document.getElementById('timerText');
   const circleForeground = document.getElementById('circleForeground');
+  const circleIcon       = document.getElementById('circleIcon');
 
   let countdownInterval;
   let totalTime     = 0; // total seconds
   let timeRemaining = 0; // seconds left
+
+  const stateColors = {
+    idle:     "#007AFF",  // iOS Blue
+    running:  "#34C759",  // iOS Green
+    paused:   "#FFCC00",  // iOS Yellow
+    finished: "#FF3B30"   // iOS Red
+  };
+
+  const stateIcons = {
+    idle:     "&#x25B6;", // play
+    running:  "&#x23F8;", // pause
+    paused:   "&#x25B6;", // play
+    finished: ""          // no icon
+  };
+
 
   // Populate dropdowns for 0..59
   for (let i = 0; i < 60; i++) {
@@ -306,8 +360,18 @@
       minutesSelect.value = 20;
       secondsSelect.value = 0;
     }
+
+    // Set up arc/time display for idle
     updateTimerFromDropdown();
-    updateButtonLabel();
+    setTimerState("idle");
+    updateTimerTextAndArc(timeRemaining);
+  }
+
+  // Change the timer state => update arc color, icon, etc.
+  function setTimerState(newState) {
+    timerState = newState;
+    circleForeground.setAttribute("fill", stateColors[newState]);
+    circleIcon.innerHTML = stateIcons[newState];
   }
 
   // Read dropdown => totalTime, save to localStorage, update arc
@@ -317,46 +381,33 @@
     totalTime = mm * 60 + ss;
     localStorage.setItem(STORAGE_TIME_KEY, `${mm}:${ss}`); // store "MM:SS"
 
+    // If idle or finished, reset arc/time display
     if (timerState === "idle" || timerState === "finished") {
-      // If we haven't started or we finished, reset the arc/time display
       timeRemaining = totalTime;
-      updateTimerTextAndArc(timeRemaining);
     }
   }
 
-  // Toggle button click => Start/Pause/Resume
-  function onToggleButtonClick() {
+  // Circle tap => Start/Pause/Resume logic
+  function onCircleTap() {
     if (timerState === "idle" || timerState === "finished") {
       // Start from the beginning
       startTimer();
-      timerState = "running";
+      setTimerState("running");
     } else if (timerState === "running") {
       // Pause
       pauseTimer();
-      timerState = "paused";
+      setTimerState("paused");
     } else if (timerState === "paused") {
       // Resume
       resumeTimer();
-      timerState = "running";
-    }
-    updateButtonLabel();
-  }
-
-  // Update the button text based on state
-  function updateButtonLabel() {
-    if (timerState === "idle" || timerState === "finished") {
-      toggleButton.textContent = "Start";
-    } else if (timerState === "running") {
-      toggleButton.textContent = "Pause";
-    } else if (timerState === "paused") {
-      toggleButton.textContent = "Resume";
+      setTimerState("running");
     }
   }
 
   // Start from full time
   function startTimer() {
     clearInterval(countdownInterval);
-    updateTimerFromDropdown();
+    updateTimerFromDropdown(); // ensure totalTime is correct
     timeRemaining = totalTime;
     runInterval();
   }
@@ -379,8 +430,10 @@
       if (timeRemaining <= 0) {
         timeRemaining = 0;
         clearInterval(countdownInterval);
-        timerState = "finished";
-        updateButtonLabel();
+        // Timer done => turn circle red (finished)
+        setTimerState("finished");
+        updateTimerTextAndArc(timeRemaining);
+        return;
       }
       updateTimerTextAndArc(timeRemaining);
     }, 100);
@@ -435,7 +488,7 @@
     `;
   }
 
-  // Refresh button => reload page (reset)
+  // Refresh button => reload page (reset everything)
   refreshButton.addEventListener('click', () => {
     location.reload();
   });
@@ -447,10 +500,8 @@
     localStorage.setItem(STORAGE_THEME_KEY, isDark);
   });
 
-  // Event listeners
-  toggleButton.addEventListener('click', onToggleButtonClick);
-  minutesSelect.addEventListener('change', updateTimerFromDropdown);
-  secondsSelect.addEventListener('change', updateTimerFromDropdown);
+  // Tap the circle => Start/Pause/Resume
+  circleArea.addEventListener('click', onCircleTap);
 
   // On load
   init();
