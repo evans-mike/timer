@@ -2,24 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Time Timer</title>
+  <title>Time Timer (Theme Button + Dark Mode Switch)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Favicon (stopwatch icon). 
-  Could be .png, .ico, or .svg; just adjust the type accordingly. -->
-  <link rel="icon" href="timer.png" type="image/png" />
 
-  <!-- Apple touch icon placeholder. 
-      iOS devices will use this when the user adds the site to their home screen. -->
+  <!-- Favicon -->
+  <link rel="icon" href="timer.png" type="image/png" />
+  <!-- Apple touch icon -->
   <link rel="apple-touch-icon" href="timer.png" />
 
-  <!-- Example: iOS Wheel Picker CSS (if you're using a library) -->
-  <!-- <link rel="stylesheet" href="https://unpkg.com/ios-wheel-picker/dist/iosWheelPicker.min.css" /> -->
-     
+  <!-- NoSleep.js for iOS Safari wake lock -->
+  <script src="https://unpkg.com/nosleep.js"></script>
+
   <style>
     /* RESET & BOX-SIZING */
     *, *::before, *::after {
       box-sizing: border-box;
-      margin: 0; 
+      margin: 0;
       padding: 0;
     }
 
@@ -29,7 +27,7 @@
       height: 100%;
     }
     body {
-      /* iOS-like system fonts */
+      /* iOS-like system font stack */
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
                    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
       background-color: #F9F9F9;
@@ -43,12 +41,10 @@
       color: #eee;
     }
 
-    /* GRID CONTAINER */
+    /* GRID CONTAINER: 4 rows => top bar, controls, circle area, footer */
     .container {
-      /* If you want the circle area to fill the remaining space,
-        you can keep grid-template-rows: auto auto 1fr, etc. */
       display: grid;
-      grid-template-rows: auto auto 1fr;
+      grid-template-rows: auto auto 1fr auto; /* footer is last row */
       gap: 1rem;
       min-height: 100vh;
       max-width: 500px;
@@ -56,51 +52,26 @@
       padding: 1rem;
     }
 
-    /* The circle area row, centered content */
-    .circle-area {
-      /* Make the row itself a flex container that centers items */
-      display: flex;
-      align-items: center;    /* vertical centering within the row */
-      justify-content: center;/* horizontal centering within the row */
-      position: relative;     /* so we can absolutely position the icon */
-      cursor: pointer;        /* keep the circle clickable */
-    }
-
-    /* The <svg> that shows the circle. Margin auto for extra safety. */
-    .circle-area svg {
-      display: block;
-      width: 95vw;       /* up to 95% of viewport width on mobile */
-      max-width: 450px;  /* but never exceed 450px on desktop */
-      height: auto;
-      margin: 0 auto;    /* center horizontally if needed */
-    }
-
-    /* The icon in the center of the circle */
-    .circle-icon {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      pointer-events: none; /* so taps/clicks go "through" to the circle */
-      font-size: 3rem;
-      color: #000; /* or whichever color you prefer */
-    }
-
-
-    /* TOP BAR: refresh icon, title, dark-mode toggle */
+    /* TOP BAR: refresh button, title, theme button, dark-mode container */
     .top-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
-    /* REFRESH BUTTON */
+    /* A small container for the left side (Refresh + Theme) if you like */
+    .left-buttons {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
     .icon-button {
       background: none;
       border: none;
       font-size: 1.4rem;
       cursor: pointer;
-      color: #007AFF; /* iOS-like blue */
+      color: #007AFF;
       padding: 0.25rem 0.5rem;
       transition: color 0.2s;
     }
@@ -108,19 +79,43 @@
       color: #006AE6;
     }
 
-    /* TITLE in the middle */
+    /* A standard button for theme toggling */
+    .theme-button {
+      font-size: 0.9rem;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      color: #fff;
+      background-color: #007AFF;
+      transition: background 0.2s ease-in-out;
+    }
+    .theme-button:hover {
+      background-color: #006AE6;
+    }
+
     .title {
       font-size: 1.4rem;
       font-weight: 600;
       text-align: center;
-      flex: 1; /* so it takes the remaining space between refresh & toggle */
+      flex: 1;
     }
 
-    /* TOGGLE SWITCH (iOS style) */
+    /* Dark Mode Container: label + bigger toggle switch */
+    .dark-mode-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem; /* spacing between label and switch */
+    }
+    .dark-mode-label {
+      font-size: 0.9rem;
+    }
+
+    /* TOGGLE SWITCH (iOS style, bigger) */
     .toggle-switch {
       position: relative;
-      width: 50px;
-      height: 28px;
+      width: 60px;  /* bigger width */
+      height: 34px; /* bigger height */
     }
     .toggle-switch input {
       display: none; /* hide the actual checkbox */
@@ -136,10 +131,10 @@
     .toggle-switch label::after {
       content: "";
       position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 24px;
-      height: 24px;
+      top: 3px;
+      left: 3px;
+      width: 28px;
+      height: 28px;
       background: #fff;
       border-radius: 50%;
       transition: transform 0.2s;
@@ -148,10 +143,10 @@
       background: #007AFF; /* iOS blue */
     }
     .toggle-switch input:checked + label::after {
-      transform: translateX(22px);
+      transform: translateX(26px);
     }
 
-    /* CONTROLS: just time input now (no Start button) */
+    /* CONTROLS (time input) */
     .controls {
       display: flex;
       flex-wrap: wrap;
@@ -159,7 +154,6 @@
       justify-content: center;
       gap: 0.5rem;
     }
-
     .time-input {
       display: flex;
       align-items: center;
@@ -175,62 +169,62 @@
       appearance: none;
       text-align: center;
     }
-    .time-input span {
-      font-size: 1.2rem;
-      color: #444;
-    }
 
-    /* CIRCLE AREA */
+    /* CIRCLE AREA (3rd row) */
     .circle-area {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      cursor: pointer; /* show pointer on hover, since it's tappable */
-      position: relative; /* so we can position icons absolutely */
+      cursor: pointer;
+      position: relative;
     }
-
-    /* Make the circle fill nearly the full width on mobile,
-       but never exceed 450px on desktop. */
     .circle-area svg {
       display: block;
-      width: 95vw;       /* ~95% of the viewport width on mobile */
-      max-width: 450px;  /* do not exceed 450px in diameter on desktop */
+      width: 95vw;       /* ~95% on mobile */
+      max-width: 450px;  /* cap at 450px on desktop */
       height: auto;
       margin: 0 auto;
     }
-
-    /* The icon in the center of the circle */
     .circle-icon {
       position: absolute;
       font-size: 3rem;
-      pointer-events: none; /* ignore clicks on the icon itself */
+      pointer-events: none;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      color: #000; /* black icon stands out against bright circle colors */
+      color: #000;
     }
-
-    /* TIMER TEXT BELOW THE CIRCLE */
     .timer-text {
       margin-top: 1rem;
       font-size: 2rem;
-      color: inherit; /* so it adjusts in dark mode */
+      color: inherit;
       text-align: center;
+    }
+
+    /* FOOTER (4th row): BuyMeACoffee link */
+    .footer {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0.5rem;
+    }
+    .footer a img {
+      height: 50px; /* adjust if desired */
     }
 
     /* DARK MODE TWEAKS */
     body.dark-mode .icon-button {
-      color: #aaa; 
+      color: #aaa;
+    }
+    body.dark-mode .theme-button {
+      background-color: #444;
     }
     body.dark-mode .time-input select {
       background-color: #333;
       color: #eee;
       border-color: #555;
-    }
-    body.dark-mode .toggle-switch label {
-      background: #555;
     }
   </style>
 </head>
@@ -239,22 +233,32 @@
 <div class="container">
   <!-- TOP BAR (row 1) -->
   <div class="top-bar">
-    <!-- Left: refresh icon button -->
-    <button id="refreshButton" class="icon-button" aria-label="Refresh">
-      &#x21BB;
-    </button>
-    <!-- Middle: Title -->
+    <div class="left-buttons">
+      <!-- Refresh button -->
+      <button id="refreshButton" class="icon-button" aria-label="Refresh">
+        &#x21BB;
+      </button>
+      <!-- Theme toggle button -->
+      <button id="themeToggleBtn" class="theme-button">
+        Theme
+      </button>
+    </div>
+
+    <!-- Title -->
     <div class="title">Time Timer</div>
-    <!-- Right: iOS-style toggle for dark mode -->
-    <div class="toggle-switch">
-      <input type="checkbox" id="darkModeToggle" />
-      <label for="darkModeToggle"></label>
+
+    <!-- Dark mode container with label + bigger toggle switch -->
+    <div class="dark-mode-container">
+      <span class="dark-mode-label">Dark Mode</span>
+      <div class="toggle-switch">
+        <input type="checkbox" id="darkModeToggle" />
+        <label for="darkModeToggle"></label>
+      </div>
     </div>
   </div>
 
   <!-- CONTROLS (row 2) -->
   <div class="controls">
-    <!-- Time input: two selects with a colon in between -->
     <div class="time-input">
       <select id="minutesSelect"></select>
       <span>:</span>
@@ -262,12 +266,11 @@
     </div>
   </div>
 
-  <!-- CIRCLE AREA (row 3) - tap to Start/Pause/Resume -->
+  <!-- CIRCLE AREA (row 3) -->
   <div class="circle-area" id="circleArea">
     <svg id="circleSvg" viewBox="0 0 200 200">
-      <!-- Mirroring group -->
       <g transform="scale(-1,1) translate(-200,0)">
-        <!-- Background circle (we won't change its fill) -->
+        <!-- Background circle -->
         <circle
           id="circleBackground"
           cx="100"
@@ -275,59 +278,117 @@
           r="90"
           fill="#EAEAEA"
         />
-        <!-- Arc that shrinks over time; color changes per state -->
+        <!-- Foreground arc wedge -->
         <path
           id="circleForeground"
-          fill="#FF3B30"  <!-- default red for idle -->
           d=""
         />
       </g>
     </svg>
-    <!-- Icon in the center of the circle -->
-    <div class="circle-icon" id="circleIcon">&#x23F9;</div>
-    <!-- Countdown text below the circle -->
+    <div class="circle-icon" id="circleIcon"></div>
     <div class="timer-text" id="timerText">--:--</div>
+  </div>
+
+  <!-- FOOTER (row 4): BuyMeACoffee link -->
+  <div class="footer">
+    <a href="https://www.buymeacoffee.com/placeholder" target="_blank">
+      <img 
+        src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" 
+        alt="Buy Me A Coffee" 
+      />
+    </a>
   </div>
 </div>
 
 <script>
-  // Timer states: "idle", "running", "paused", "finished"
+  // ========== Wake Lock (Chrome) + NoSleep.js (iOS) ==========
+  let wakeLock = null;
+  let noSleep = new NoSleep();
+  let wakeLockSupported = ('wakeLock' in navigator);
+
+  async function enableScreenAwake() {
+    if (wakeLockSupported) {
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        console.log('Wake Lock active (Screen Wake Lock API)');
+        wakeLock.addEventListener('release', () => {
+          console.log('Wake Lock was released');
+        });
+      } catch (err) {
+        console.warn('Wake Lock request failed, fallback to NoSleep');
+        noSleep.enable();
+      }
+    } else {
+      noSleep.enable();
+      console.log('No Wake Lock support, using NoSleep.js');
+    }
+  }
+
+  async function disableScreenAwake() {
+    // Release Wake Lock if we have it
+    if (wakeLock) {
+      try {
+        await wakeLock.release();
+        wakeLock = null;
+        console.log('Wake Lock released');
+      } catch (err) {
+        console.warn('Error releasing Wake Lock:', err);
+      }
+    }
+    // Also disable NoSleep
+    noSleep.disable();
+    console.log('NoSleep disabled');
+  }
+
+  // ========== Timer Logic ==========
+
+  // We'll store time + dark mode in localStorage
+  const STORAGE_TIME_KEY  = 'timerValue'; // "MM:SS"
+  const STORAGE_THEME_KEY = 'darkMode';   // "true" or "false"
+
+  // Two color themes for the wedge
+  const lightModernColors = {
+    idle:     "#007ACC",
+    running:  "#267F99",
+    paused:   "#9C4CAD",
+    finished: "#B24747"
+  };
+  const darkModernColors = {
+    idle:     "#569CD6",
+    running:  "#4EC9B0",
+    paused:   "#C586C0",
+    finished: "#D16969"
+  };
+
+  // We'll toggle between these two with the theme button
+  let stateColors = lightModernColors;
+
+  // Timer states
   let timerState = "idle";
+  let totalTime = 0;
+  let timeRemaining = 0;
+  let countdownInterval = null;
 
-  // We'll store the last used time and dark mode preference in localStorage
-  const STORAGE_TIME_KEY  = 'timerValue';  // "MM:SS"
-  const STORAGE_THEME_KEY = 'darkMode';    // "true" or "false"
+  // No icons
+  const stateIcons = {
+    idle:     "",
+    running:  "",
+    paused:   "",
+    finished: ""
+  };
 
-  // Elements
+  // Grab elements
   const refreshButton    = document.getElementById('refreshButton');
+  const themeToggleBtn   = document.getElementById('themeToggleBtn');
   const darkModeToggle   = document.getElementById('darkModeToggle');
   const minutesSelect    = document.getElementById('minutesSelect');
   const secondsSelect    = document.getElementById('secondsSelect');
   const circleArea       = document.getElementById('circleArea');
-  const timerText        = document.getElementById('timerText');
   const circleForeground = document.getElementById('circleForeground');
   const circleIcon       = document.getElementById('circleIcon');
+  const timerText        = document.getElementById('timerText');
 
-  let countdownInterval;
-  let totalTime     = 0; // total seconds
-  let timeRemaining = 0; // seconds left
-
-  const stateColors = {
-    idle:     "#007AFF",  // iOS Blue
-    running:  "#34C759",  // iOS Green
-    paused:   "#FFCC00",  // iOS Yellow
-    finished: "#FF3B30"   // iOS Red
-  };
-
-  const stateIcons = {
-    idle:     "&#x25B6;", // play
-    running:  "&#x23F8;", // pause
-    paused:   "&#x25B6;", // play
-    finished: ""          // no icon
-  };
-
-
-  // Populate dropdowns for 0..59
+  // Populate 0..59 for minutes & seconds
   for (let i = 0; i < 60; i++) {
     const optMin = document.createElement('option');
     optMin.value = i;
@@ -340,89 +401,79 @@
     secondsSelect.appendChild(optSec);
   }
 
-  // On page load, set up from localStorage or default
   function init() {
-    // 1) Restore dark mode preference
+    // Restore dark mode preference
     const storedDarkMode = localStorage.getItem(STORAGE_THEME_KEY);
     if (storedDarkMode === 'true') {
       document.body.classList.add('dark-mode');
       darkModeToggle.checked = true;
     }
 
-    // 2) Restore time
+    // Default time or last used
     const storedTime = localStorage.getItem(STORAGE_TIME_KEY);
     if (storedTime) {
       const [mm, ss] = storedTime.split(':').map(Number);
       minutesSelect.value = mm;
       secondsSelect.value = ss;
     } else {
-      // Otherwise, default to 20:00
+      // Default 20:00
       minutesSelect.value = 20;
       secondsSelect.value = 0;
     }
 
-    // Set up arc/time display for idle
-    updateTimerFromDropdown();
     setTimerState("idle");
+    updateTimerFromDropdown();
     updateTimerTextAndArc(timeRemaining);
   }
 
-  // Change the timer state => update arc color, icon, etc.
   function setTimerState(newState) {
     timerState = newState;
     circleForeground.setAttribute("fill", stateColors[newState]);
     circleIcon.innerHTML = stateIcons[newState];
   }
 
-  // Read dropdown => totalTime, save to localStorage, update arc
   function updateTimerFromDropdown() {
     const mm = parseInt(minutesSelect.value, 10);
     const ss = parseInt(secondsSelect.value, 10);
     totalTime = mm * 60 + ss;
-    localStorage.setItem(STORAGE_TIME_KEY, `${mm}:${ss}`); // store "MM:SS"
+    localStorage.setItem(STORAGE_TIME_KEY, `${mm}:${ss}`);
 
-    // If idle or finished, reset arc/time display
     if (timerState === "idle" || timerState === "finished") {
       timeRemaining = totalTime;
     }
   }
 
-  // Circle tap => Start/Pause/Resume logic
   function onCircleTap() {
     if (timerState === "idle" || timerState === "finished") {
-      // Start from the beginning
       startTimer();
       setTimerState("running");
+      enableScreenAwake();
     } else if (timerState === "running") {
-      // Pause
       pauseTimer();
       setTimerState("paused");
+      disableScreenAwake();
     } else if (timerState === "paused") {
-      // Resume
       resumeTimer();
       setTimerState("running");
+      enableScreenAwake();
     }
   }
 
-  // Start from full time
   function startTimer() {
     clearInterval(countdownInterval);
-    updateTimerFromDropdown(); // ensure totalTime is correct
+    updateTimerFromDropdown();
     timeRemaining = totalTime;
     runInterval();
   }
 
-  // Pause
   function pauseTimer() {
     clearInterval(countdownInterval);
   }
 
-  // Resume
   function resumeTimer() {
     runInterval();
   }
 
-  // Actually run the countdown (interval)
   function runInterval() {
     updateTimerTextAndArc(timeRemaining);
     countdownInterval = setInterval(() => {
@@ -430,16 +481,15 @@
       if (timeRemaining <= 0) {
         timeRemaining = 0;
         clearInterval(countdownInterval);
-        // Timer done => turn circle red (finished)
         setTimerState("finished");
         updateTimerTextAndArc(timeRemaining);
+        disableScreenAwake();
         return;
       }
       updateTimerTextAndArc(timeRemaining);
     }, 100);
   }
 
-  // Update arc path and text
   function updateTimerTextAndArc(remaining) {
     let fractionLeft = (totalTime > 0) ? remaining / totalTime : 0;
     if (fractionLeft < 0) fractionLeft = 0;
@@ -450,7 +500,6 @@
     timerText.textContent = formatTime(remaining);
   }
 
-  // Convert seconds => "MM:SS"
   function formatTime(seconds) {
     if (seconds < 0) seconds = 0;
     const mm = Math.floor(seconds / 60);
@@ -458,13 +507,11 @@
     return mm + ":" + ss.toString().padStart(2, "0");
   }
 
-  // Build a wedge (pie slice) arc in SVG
   function describeArc(cx, cy, r, angleDeg) {
     if (angleDeg <= 0) {
       return '';
     }
     if (angleDeg >= 360) {
-      // full circle
       return `
         M ${cx} ${cy - r}
         A ${r} ${r} 0 1 1 ${cx - 0.01} ${cy - r}
@@ -488,12 +535,12 @@
     `;
   }
 
-  // Refresh button => reload page (reset everything)
+  // Refresh => reload
   refreshButton.addEventListener('click', () => {
     location.reload();
   });
 
-  // Dark mode toggle => toggles "dark-mode" class on body & saves preference
+  // Dark mode toggle => toggles class, saves preference
   darkModeToggle.addEventListener('change', (e) => {
     const isDark = e.target.checked;
     document.body.classList.toggle('dark-mode', isDark);
@@ -502,6 +549,21 @@
 
   // Tap the circle => Start/Pause/Resume
   circleArea.addEventListener('click', onCircleTap);
+
+  // If user changes the dropdown while idle/finished
+  minutesSelect.addEventListener('change', updateTimerFromDropdown);
+  secondsSelect.addEventListener('change', updateTimerFromDropdown);
+
+  // THEME TOGGLE: Switch between lightModernColors & darkModernColors
+  themeToggleBtn.addEventListener('click', () => {
+    if (stateColors === lightModernColors) {
+      stateColors = darkModernColors;
+    } else {
+      stateColors = lightModernColors;
+    }
+    // Refresh the wedge color for current state
+    setTimerState(timerState);
+  });
 
   // On load
   init();
