@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Solid Pie Timer (Toggling Start/Pause/Resume)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    /* RESET & BOX-SIZING */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0; 
+      padding: 0;
+    }
+
+    /* BODY & HTML */
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
+    body {
+      /* iOS-like system fonts */
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+                   Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+      background-color: #F9F9F9;
+      color: #222;
+      overflow-x: hidden; /* hide any horizontal scroll */
+    }
+
+    /* A "dark-mode" class toggles a darker theme */
+    body.dark-mode {
+      background-color: #111;
+      color: #eee;
+    }
+
+    /* GRID CONTAINER */
+    .container {
+      display: grid;
+      /* 3 rows: top bar, controls, circle area (filling the rest) */
+      grid-template-rows: auto auto 1fr;
+      gap: 1rem;
+      min-height: 100vh;    /* fill vertical space */
+      max-height: 900px;    /* restrict max height on large desktops */
+      max-width: 500px;     /* restrict max width on large desktops */
+      margin: 0 auto;       /* center horizontally */
+      padding: 1rem;
+    }
+
+    /* TOP BAR: refresh icon, title, dark-mode toggle */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* REFRESH BUTTON */
+    .icon-button {
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      cursor: pointer;
+      color: #007AFF; /* iOS-like blue */
+      padding: 0.25rem 0.5rem;
+      transition: color 0.2s;
+    }
+    .icon-button:hover {
+      color: #006AE6;
+    }
+
+    /* TITLE in the middle */
+    .title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      text-align: center;
+      flex: 1; /* so it takes the remaining space between refresh & toggle */
+    }
+
+    /* TOGGLE SWITCH (iOS style) */
+    .toggle-switch {
+      position: relative;
+      width: 50px;
+      height: 28px;
+    }
+    .toggle-switch input {
+      display: none; /* hide the actual checkbox */
+    }
+    .toggle-switch label {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #ccc;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle-switch label::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 24px;
+      height: 24px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle-switch input:checked + label {
+      background: #007AFF; /* iOS blue */
+    }
+    .toggle-switch input:checked + label::after {
+      transform: translateX(22px);
+    }
+
+    /* CONTROLS: time input + Start/Pause/Resume button */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .time-input {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .time-input select {
+      width: 60px;
+      font-size: 0.9rem;
+      padding: 0.3rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background-color: #fff;
+      appearance: none;
+      text-align: center;
+    }
+    .time-input span {
+      font-size: 1.2rem;
+      color: #444;
+    }
+
+    /* BUTTON */
+    button {
+      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      color: #fff;
+      background-color: #007AFF; /* iOS-like “system blue” */
+      transition: background 0.2s ease-in-out;
+    }
+    button:hover {
+      background-color: #006AE6; /* darken on hover */
+    }
+
+    /* CIRCLE AREA */
+    .circle-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden; /* in case the screen is very small */
+    }
+    .circle-area svg {
+      width: 200px;
+      height: 200px;
+    }
+
+    /* TIMER TEXT BELOW THE CIRCLE */
+    .timer-text {
+      margin-top: 1rem;
+      font-size: 2rem;
+      color: inherit; /* so it adjusts in dark mode */
+      text-align: center;
+    }
+
+    /* DARK MODE TWEAKS */
+    body.dark-mode .icon-button {
+      color: #aaa; 
+    }
+    body.dark-mode button {
+      background-color: #444;
+    }
+    body.dark-mode .time-input select {
+      background-color: #333;
+      color: #eee;
+      border-color: #555;
+    }
+    body.dark-mode .toggle-switch label {
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- TOP BAR (row 1) -->
+  <div class="top-bar">
+    <!-- Left: refresh icon button -->
+    <button id="refreshButton" class="icon-button" aria-label="Refresh">
+      &#x21BB;
+    </button>
+    <!-- Middle: Title -->
+    <div class="title">Time Timer</div>
+    <!-- Right: iOS-style toggle for dark mode -->
+    <div class="toggle-switch">
+      <input type="checkbox" id="darkModeToggle" />
+      <label for="darkModeToggle"></label>
+    </div>
+  </div>
+
+  <!-- CONTROLS (row 2) -->
+  <div class="controls">
+    <!-- Streamlined time input: two selects with a colon in between -->
+    <div class="time-input">
+      <select id="minutesSelect"></select>
+      <span>:</span>
+      <select id="secondsSelect"></select>
+    </div>
+    <!-- Toggling button (Start, Pause, Resume) -->
+    <button id="toggleButton">Start</button>
+  </div>
+
+  <!-- CIRCLE AREA (row 3) -->
+  <div class="circle-area">
+    <svg id="circleSvg" viewBox="0 0 200 200">
+      <!-- Mirroring group -->
+      <g transform="scale(-1,1) translate(-200,0)">
+        <!-- Background circle (gray) -->
+        <circle
+          cx="100"
+          cy="100"
+          r="90"
+          fill="#EAEAEA"
+        />
+        <!-- Red arc (pie slice) that shrinks over time -->
+        <path
+          id="circleForeground"
+          fill="red"
+          d=""
+        />
+      </g>
+    </svg>
+    <!-- Countdown text below the circle -->
+    <div class="timer-text" id="timerText">--:--</div>
+  </div>
+</div>
+
+<script>
+  // We'll store the last used time in localStorage
+  const STORAGE_KEY = 'timerValue'; // we'll store "MM:SS" here
+
+  // Timer states: "idle", "running", "paused", "finished"
+  let timerState = "idle";
+
+  // Elements
+  const refreshButton    = document.getElementById('refreshButton');
+  const darkModeToggle   = document.getElementById('darkModeToggle');
+  const minutesSelect    = document.getElementById('minutesSelect');
+  const secondsSelect    = document.getElementById('secondsSelect');
+  const toggleButton     = document.getElementById('toggleButton');
+  const timerText        = document.getElementById('timerText');
+  const circleForeground = document.getElementById('circleForeground');
+
+  let countdownInterval;
+  let totalTime     = 0; // total seconds
+  let timeRemaining = 0; // seconds left
+
+  // Populate dropdowns for 0..59
+  for (let i = 0; i < 60; i++) {
+    const optMin = document.createElement('option');
+    optMin.value = i;
+    optMin.text  = i.toString();
+    minutesSelect.appendChild(optMin);
+
+    const optSec = document.createElement('option');
+    optSec.value = i;
+    optSec.text  = i.toString();
+    secondsSelect.appendChild(optSec);
+  }
+
+  // On page load, set up from localStorage or default
+  function init() {
+    const storedTime = localStorage.getItem(STORAGE_KEY);
+    if (storedTime) {
+      const [mm, ss] = storedTime.split(':').map(Number);
+      minutesSelect.value = mm;
+      secondsSelect.value = ss;
+    } else {
+      // Otherwise, default to 20:00
+      minutesSelect.value = 20;
+      secondsSelect.value = 0;
+    }
+    updateTimerFromDropdown(); // sets totalTime and arc
+  }
+
+  // Read dropdown => totalTime, save to localStorage, update arc
+  function updateTimerFromDropdown() {
+    const mm = parseInt(minutesSelect.value, 10);
+    const ss = parseInt(secondsSelect.value, 10);
+    totalTime = mm * 60 + ss;
+    localStorage.setItem(STORAGE_KEY, `${mm}:${ss}`); // store "MM:SS"
+
+    if (timerState === "idle" || timerState === "finished") {
+      // If we haven't started or we finished, reset the arc/time display
+      timeRemaining = totalTime;
+      updateTimerTextAndArc(timeRemaining);
+    }
+  }
+
+  // Toggle button click => Start/Pause/Resume
+  function onToggleButtonClick() {
+    if (timerState === "idle" || timerState === "finished") {
+      // Start from the beginning
+      startTimer();
+      timerState = "running";
+    } else if (timerState === "running") {
+      // Pause
+      pauseTimer();
+      timerState = "paused";
+    } else if (timerState === "paused") {
+      // Resume
+      resumeTimer();
+      timerState = "running";
+    }
+    updateButtonLabel();
+  }
+
+  // Update the button text based on state
+  function updateButtonLabel() {
+    if (timerState === "idle" || timerState === "finished") {
+      toggleButton.textContent = "Start";
+    } else if (timerState === "running") {
+      toggleButton.textContent = "Pause";
+    } else if (timerState === "paused") {
+      toggleButton.textContent = "Resume";
+    }
+  }
+
+  // Start from full time
+  function startTimer() {
+    clearInterval(countdownInterval);
+    updateTimerFromDropdown(); // ensure totalTime is correct
+    timeRemaining = totalTime;
+    runInterval();
+  }
+
+  // Pause (stop the interval)
+  function pauseTimer() {
+    clearInterval(countdownInterval);
+  }
+
+  // Resume (restart the interval from current timeRemaining)
+  function resumeTimer() {
+    runInterval();
+  }
+
+  // Actually run the countdown (interval)
+  function runInterval() {
+    updateTimerTextAndArc(timeRemaining);
+    countdownInterval = setInterval(() => {
+      timeRemaining -= 0.1;
+      if (timeRemaining <= 0) {
+        timeRemaining = 0;
+        clearInterval(countdownInterval);
+        timerState = "finished";
+        updateButtonLabel(); // show "Start" again
+      }
+      updateTimerTextAndArc(timeRemaining);
+    }, 100);
+  }
+
+  // Update arc path and text
+  function updateTimerTextAndArc(remaining) {
+    let fractionLeft = (totalTime > 0) ? remaining / totalTime : 0;
+    if (fractionLeft < 0) fractionLeft = 0;
+    if (fractionLeft > 1) fractionLeft = 1;
+
+    // angle = fractionLeft * 360
+    const angle = fractionLeft * 360;
+    circleForeground.setAttribute('d', describeArc(100, 100, 90, angle));
+
+    timerText.textContent = formatTime(remaining);
+  }
+
+  // Convert seconds => "MM:SS"
+  function formatTime(seconds) {
+    if (seconds < 0) seconds = 0;
+    const mm = Math.floor(seconds / 60);
+    const ss = Math.floor(seconds % 60);
+    return mm + ":" + ss.toString().padStart(2, "0");
+  }
+
+  // Build a wedge (pie slice) arc in SVG
+  function describeArc(cx, cy, r, angleDeg) {
+    if (angleDeg <= 0) {
+      return '';
+    }
+    if (angleDeg >= 360) {
+      // full circle
+      return `
+        M ${cx} ${cy - r}
+        A ${r} ${r} 0 1 1 ${cx - 0.01} ${cy - r}
+        Z
+      `;
+    }
+    const largeArcFlag = (angleDeg > 180) ? 1 : 0;
+    const sweepFlag    = 1;
+    const angleRad     = (Math.PI / 180) * angleDeg;
+
+    const startX = cx;
+    const startY = cy - r;
+    const endX   = cx + r * Math.sin(angleRad);
+    const endY   = cy - r * Math.cos(angleRad);
+
+    return `
+      M ${cx} ${cy}
+      L ${startX} ${startY}
+      A ${r} ${r} 0 ${largeArcFlag} ${sweepFlag} ${endX} ${endY}
+      Z
+    `;
+  }
+
+  // EVENT LISTENERS
+  toggleButton.addEventListener('click', onToggleButtonClick);
+  minutesSelect.addEventListener('change', updateTimerFromDropdown);
+  secondsSelect.addEventListener('change', updateTimerFromDropdown);
+
+  // Refresh button => reload page (reset)
+  refreshButton.addEventListener('click', () => {
+    location.reload();
+  });
+
+  // Dark mode toggle => toggles "dark-mode" class on body
+  darkModeToggle.addEventListener('change', (e) => {
+    document.body.classList.toggle('dark-mode', e.target.checked);
+  });
+
+  // On load
+  init();
+  updateButtonLabel(); // ensure button starts labeled "Start"
+</script>
+</body>
+</html>
