@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Solid Pie Timer (Toggling Start/Pause/Resume)</title>
+  <title>Time Timer (Dark Mode Saved)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     /* RESET & BOX-SIZING */
@@ -35,13 +35,12 @@
     /* GRID CONTAINER */
     .container {
       display: grid;
-      /* 3 rows: top bar, controls, circle area (filling the rest) */
       grid-template-rows: auto auto 1fr;
       gap: 1rem;
-      min-height: 100vh;    /* fill vertical space */
-      max-height: 900px;    /* restrict max height on large desktops */
-      max-width: 500px;     /* restrict max width on large desktops */
-      margin: 0 auto;       /* center horizontally */
+      min-height: 100vh;
+      max-height: 900px;   /* restrict max height on large desktops */
+      max-width: 500px;    /* restrict overall container width on desktops */
+      margin: 0 auto;      /* center horizontally */
       padding: 1rem;
     }
 
@@ -159,11 +158,17 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      overflow: hidden; /* in case the screen is very small */
+      overflow: hidden;
     }
+
+    /* Make the circle fill nearly the full width on mobile,
+       but never exceed 450px on desktop (adjust as you like). */
     .circle-area svg {
-      width: 200px;
-      height: 200px;
+      display: block;
+      width: 95vw;       /* ~95% of the viewport width on mobile */
+      max-width: 450px;  /* do not exceed 450px in diameter on desktop */
+      height: auto;
+      margin: 0 auto;
     }
 
     /* TIMER TEXT BELOW THE CIRCLE */
@@ -223,6 +228,7 @@
 
   <!-- CIRCLE AREA (row 3) -->
   <div class="circle-area">
+    <!-- We keep the same viewBox to maintain the arc logic -->
     <svg id="circleSvg" viewBox="0 0 200 200">
       <!-- Mirroring group -->
       <g transform="scale(-1,1) translate(-200,0)">
@@ -247,11 +253,12 @@
 </div>
 
 <script>
-  // We'll store the last used time in localStorage
-  const STORAGE_KEY = 'timerValue'; // we'll store "MM:SS" here
-
   // Timer states: "idle", "running", "paused", "finished"
   let timerState = "idle";
+
+  // We'll store the last used time and dark mode preference in localStorage
+  const STORAGE_TIME_KEY = 'timerValue';  // "MM:SS"
+  const STORAGE_THEME_KEY = 'darkMode';   // "true" or "false"
 
   // Elements
   const refreshButton    = document.getElementById('refreshButton');
@@ -281,7 +288,15 @@
 
   // On page load, set up from localStorage or default
   function init() {
-    const storedTime = localStorage.getItem(STORAGE_KEY);
+    // 1) Restore dark mode preference
+    const storedDarkMode = localStorage.getItem(STORAGE_THEME_KEY);
+    if (storedDarkMode === 'true') {
+      document.body.classList.add('dark-mode');
+      darkModeToggle.checked = true;
+    }
+
+    // 2) Restore time
+    const storedTime = localStorage.getItem(STORAGE_TIME_KEY);
     if (storedTime) {
       const [mm, ss] = storedTime.split(':').map(Number);
       minutesSelect.value = mm;
@@ -291,7 +306,8 @@
       minutesSelect.value = 20;
       secondsSelect.value = 0;
     }
-    updateTimerFromDropdown(); // sets totalTime and arc
+    updateTimerFromDropdown();
+    updateButtonLabel();
   }
 
   // Read dropdown => totalTime, save to localStorage, update arc
@@ -299,7 +315,7 @@
     const mm = parseInt(minutesSelect.value, 10);
     const ss = parseInt(secondsSelect.value, 10);
     totalTime = mm * 60 + ss;
-    localStorage.setItem(STORAGE_KEY, `${mm}:${ss}`); // store "MM:SS"
+    localStorage.setItem(STORAGE_TIME_KEY, `${mm}:${ss}`); // store "MM:SS"
 
     if (timerState === "idle" || timerState === "finished") {
       // If we haven't started or we finished, reset the arc/time display
@@ -340,17 +356,17 @@
   // Start from full time
   function startTimer() {
     clearInterval(countdownInterval);
-    updateTimerFromDropdown(); // ensure totalTime is correct
+    updateTimerFromDropdown();
     timeRemaining = totalTime;
     runInterval();
   }
 
-  // Pause (stop the interval)
+  // Pause
   function pauseTimer() {
     clearInterval(countdownInterval);
   }
 
-  // Resume (restart the interval from current timeRemaining)
+  // Resume
   function resumeTimer() {
     runInterval();
   }
@@ -364,7 +380,7 @@
         timeRemaining = 0;
         clearInterval(countdownInterval);
         timerState = "finished";
-        updateButtonLabel(); // show "Start" again
+        updateButtonLabel();
       }
       updateTimerTextAndArc(timeRemaining);
     }, 100);
@@ -376,10 +392,8 @@
     if (fractionLeft < 0) fractionLeft = 0;
     if (fractionLeft > 1) fractionLeft = 1;
 
-    // angle = fractionLeft * 360
     const angle = fractionLeft * 360;
     circleForeground.setAttribute('d', describeArc(100, 100, 90, angle));
-
     timerText.textContent = formatTime(remaining);
   }
 
@@ -421,24 +435,25 @@
     `;
   }
 
-  // EVENT LISTENERS
-  toggleButton.addEventListener('click', onToggleButtonClick);
-  minutesSelect.addEventListener('change', updateTimerFromDropdown);
-  secondsSelect.addEventListener('change', updateTimerFromDropdown);
-
   // Refresh button => reload page (reset)
   refreshButton.addEventListener('click', () => {
     location.reload();
   });
 
-  // Dark mode toggle => toggles "dark-mode" class on body
+  // Dark mode toggle => toggles "dark-mode" class on body & saves preference
   darkModeToggle.addEventListener('change', (e) => {
-    document.body.classList.toggle('dark-mode', e.target.checked);
+    const isDark = e.target.checked;
+    document.body.classList.toggle('dark-mode', isDark);
+    localStorage.setItem(STORAGE_THEME_KEY, isDark);
   });
+
+  // Event listeners
+  toggleButton.addEventListener('click', onToggleButtonClick);
+  minutesSelect.addEventListener('change', updateTimerFromDropdown);
+  secondsSelect.addEventListener('change', updateTimerFromDropdown);
 
   // On load
   init();
-  updateButtonLabel(); // ensure button starts labeled "Start"
 </script>
 </body>
 </html>
