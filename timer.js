@@ -3,8 +3,8 @@ let wakeLock = null;
 let noSleep = new NoSleep();
 let wakeLockSupported = "wakeLock" in navigator;
 
-const startSound = new Audio("sounds/_start.mp3");
-const finishSound = new Audio("sounds/finish.mp3");
+const startSound = new Audio("sounds/_start.mp3"); // muted for now
+const finishSound = new Audio("sounds/_finish.mp3"); // muted for now
 
 // Function to play notification and vibrate
 function notify(isStart = true) {
