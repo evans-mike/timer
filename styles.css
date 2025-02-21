@@ -201,6 +201,28 @@ body.dark-mode .time-input select {
   border-color: #555;
 }
 
+/* Add these gradient styles */
+body:not(.dark-mode) #trailGradient stop:first-child {
+  stop-color: #4CAF50;
+}
+
+body:not(.dark-mode) #trailGradient stop:last-child {
+  stop-color: #4CAF50;
+}
+
+body.dark-mode #trailGradient stop:first-child {
+  stop-color: #81C784;
+}
+
+body.dark-mode #trailGradient stop:last-child {
+  stop-color: #81C784;
+}
+
+/* Add transition for smooth color changes */
+#circleForeground {
+  transition: fill 0.3s ease;
+}
+
 @media screen and (max-width: 480px) {
   .container {
     padding: 10px; /* Reduce padding on mobile */

@@ -50,6 +50,13 @@
         <!-- CIRCLE AREA (row 3) -->
         <div class="circle-area" id="circleArea">
           <svg id="circleSvg" viewBox="0 0 200 200">
+            <!-- Add gradient definitions -->
+            <defs>
+              <linearGradient id="trailGradient" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-opacity="1"/>
+                <stop offset="100%" stop-opacity="0.3"/>
+              </linearGradient>
+            </defs>
             <g transform="scale(-1,1) translate(-200,0)">
               <!-- Background circle -->
               <circle
@@ -60,7 +67,7 @@
                 fill="#EAEAEA"
               />
               <!-- Foreground arc wedge -->
-              <path id="circleForeground" d="" fill="#4CAF50" />
+              <path id="circleForeground" d="" fill="url(#trailGradient)" />
             </g>
           </svg>
           <div class="circle-icon" id="circleIcon"></div>

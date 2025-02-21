@@ -3,26 +3,26 @@ let wakeLock = null;
 let noSleep = new NoSleep();
 let wakeLockSupported = "wakeLock" in navigator;
 
-const startSound = new Audio('sounds/_start.mp3');
-const finishSound = new Audio('sounds/finish.mp3');
+const startSound = new Audio("sounds/_start.mp3");
+const finishSound = new Audio("sounds/finish.mp3");
 
 // Function to play notification and vibrate
 function notify(isStart = true) {
-    // Play sound
+  // Play sound
+  if (isStart) {
+    startSound.play().catch((e) => console.log("Audio play failed:", e));
+  } else {
+    finishSound.play().catch((e) => console.log("Audio play failed:", e));
+  }
+
+  // Vibrate if supported (mobile devices)
+  if (navigator.vibrate) {
     if (isStart) {
-        startSound.play().catch(e => console.log('Audio play failed:', e));
+      navigator.vibrate(200); // Single vibration for start
     } else {
-        finishSound.play().catch(e => console.log('Audio play failed:', e));
+      navigator.vibrate([200, 100, 200]); // Pattern for finish: vibrate-pause-vibrate
     }
-    
-    // Vibrate if supported (mobile devices)
-    if (navigator.vibrate) {
-        if (isStart) {
-            navigator.vibrate(200); // Single vibration for start
-        } else {
-            navigator.vibrate([200, 100, 200]); // Pattern for finish: vibrate-pause-vibrate
-        }
-    }
+  }
 }
 
 async function enableScreenAwake() {
@@ -161,33 +161,39 @@ function init() {
 }
 
 function setTimerState(newState) {
-    timerState = newState;
-    timerState = newState;
-    const isDarkMode = document.body.classList.contains('dark-mode');
-    const themeColors = isDarkMode ? stateColors.dark : stateColors.light;
-    
-    // Add notification when changing to running state
-    if (newState === "running") {
-        notify(true);
-    }
-    
-    const circleForeground = document.getElementById('circleForeground');
-    const circleBackground = document.getElementById('circleBackground');
-    
-    // Set the color
-    circleForeground.setAttribute("fill", themeColors[newState]);
-    
-    if (newState === "finished") {
-      // Move background behind foreground for finished state
-      circleBackground.parentNode.insertBefore(circleForeground, circleBackground);
-      circleForeground.setAttribute("d", describeArc(100, 100, 90, 360));
-    } else {
-      // Move foreground in front of background for all other states
-      circleBackground.parentNode.insertBefore(circleBackground, circleForeground);
-    }
-    
-    circleIcon.innerHTML = stateIcons[newState];
+  timerState = newState;
+  timerState = newState;
+  const isDarkMode = document.body.classList.contains("dark-mode");
+  const themeColors = isDarkMode ? stateColors.dark : stateColors.light;
+
+  // Add notification when changing to running state
+  if (newState === "running") {
+    notify(true);
   }
+
+  const circleForeground = document.getElementById("circleForeground");
+  const circleBackground = document.getElementById("circleBackground");
+
+  // Set the color
+  circleForeground.setAttribute("fill", themeColors[newState]);
+
+  if (newState === "finished") {
+    // Move background behind foreground for finished state
+    circleBackground.parentNode.insertBefore(
+      circleForeground,
+      circleBackground
+    );
+    circleForeground.setAttribute("d", describeArc(100, 100, 90, 360));
+  } else {
+    // Move foreground in front of background for all other states
+    circleBackground.parentNode.insertBefore(
+      circleBackground,
+      circleForeground
+    );
+  }
+
+  circleIcon.innerHTML = stateIcons[newState];
+}
 
 function updateTimerFromDropdown() {
   const mm = parseInt(minutesSelect.value, 10);
@@ -221,51 +227,103 @@ function onCircleTap() {
   }
 }
 
+let startTime;
+let animationFrameId;
+
 function startTimer() {
   clearInterval(countdownInterval);
   updateTimerFromDropdown();
   timeRemaining = totalTime;
-  runInterval();
+  startTime = Date.now() / 1000; // Current time in seconds
+  runAnimation();
 }
 
 function pauseTimer() {
-  clearInterval(countdownInterval);
+  cancelAnimationFrame(animationFrameId);
 }
 
 function resumeTimer() {
-  runInterval();
+  startTime = Date.now() / 1000 - (totalTime - timeRemaining); // Adjust start time based on remaining time
+  runAnimation();
+}
+
+function runAnimation() {
+  const currentTime = Date.now() / 1000;
+  timeRemaining = Math.max(0, totalTime - (currentTime - startTime));
+
+  // Calculate current angle for gradient rotation
+  const currentAngle = (timeRemaining / totalTime) * 360;
+  const gradient = document.querySelector("#trailGradient");
+  gradient.setAttribute("gradientTransform", `rotate(${currentAngle} 100 100)`);
+
+  updateTimerTextAndArc(timeRemaining);
+
+  if (timeRemaining <= 0) {
+    cancelAnimationFrame(animationFrameId);
+    notify(false);
+
+    // Move circles and set finished state
+    const isDarkMode = document.body.classList.contains("dark-mode");
+    const finishedColor = isDarkMode
+      ? stateColors.dark.finished
+      : stateColors.light.finished;
+
+    const circleForeground = document.getElementById("circleForeground");
+    const circleBackground = document.getElementById("circleBackground");
+
+    // Move background behind foreground
+    circleBackground.parentNode.insertBefore(
+      circleForeground,
+      circleBackground
+    );
+
+    circleForeground.setAttribute("fill", finishedColor);
+    circleForeground.setAttribute("d", describeArc(100, 100, 90, 360));
+
+    setTimerState("finished");
+    updateTimerTextAndArc(0);
+    disableScreenAwake();
+    return;
+  }
+
+  animationFrameId = requestAnimationFrame(runAnimation);
 }
 
 function runInterval() {
+  updateTimerTextAndArc(timeRemaining);
+  countdownInterval = setInterval(() => {
+    timeRemaining -= 0.1;
+    if (timeRemaining <= 0) {
+      timeRemaining = 0;
+      clearInterval(countdownInterval);
+      notify(false);
+
+      // Move circles and set finished state
+      const isDarkMode = document.body.classList.contains("dark-mode");
+      const finishedColor = isDarkMode
+        ? stateColors.dark.finished
+        : stateColors.light.finished;
+
+      const circleForeground = document.getElementById("circleForeground");
+      const circleBackground = document.getElementById("circleBackground");
+
+      // Move background behind foreground
+      circleBackground.parentNode.insertBefore(
+        circleForeground,
+        circleBackground
+      );
+
+      circleForeground.setAttribute("fill", finishedColor);
+      circleForeground.setAttribute("d", describeArc(100, 100, 90, 360));
+
+      setTimerState("finished");
+      updateTimerTextAndArc(0);
+      disableScreenAwake();
+      return;
+    }
     updateTimerTextAndArc(timeRemaining);
-    countdownInterval = setInterval(() => {
-      timeRemaining -= 0.1;
-      if (timeRemaining <= 0) {
-        timeRemaining = 0;
-        clearInterval(countdownInterval);
-        notify(false);
-        
-        // Move circles and set finished state
-        const isDarkMode = document.body.classList.contains('dark-mode');
-        const finishedColor = isDarkMode ? stateColors.dark.finished : stateColors.light.finished;
-        
-        const circleForeground = document.getElementById('circleForeground');
-        const circleBackground = document.getElementById('circleBackground');
-        
-        // Move background behind foreground
-        circleBackground.parentNode.insertBefore(circleForeground, circleBackground);
-        
-        circleForeground.setAttribute("fill", finishedColor);
-        circleForeground.setAttribute("d", describeArc(100, 100, 90, 360));
-        
-        setTimerState("finished");
-        updateTimerTextAndArc(0);
-        disableScreenAwake();
-        return;
-      }
-      updateTimerTextAndArc(timeRemaining);
-    }, 100);
-  }
+  }, 100);
+}
 
 function updateTimerTextAndArc(timeLeft) {
   // Update timer text
@@ -365,7 +423,6 @@ secondsSelect.addEventListener("change", () => {
     updateTimerTextAndArc(timeRemaining);
   }
 });
-
 
 // Initialize on page load
 init();
