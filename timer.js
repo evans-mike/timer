@@ -72,16 +72,16 @@ const circleArea = document.getElementById("circleArea");
 const circleForeground = document.getElementById("circleForeground");
 const circleIcon = document.getElementById("circleIcon");
 const timerText = document.getElementById("timerText");
-const circleBackground = document.getElementById('circleBackground');
+const circleBackground = document.getElementById("circleBackground");
 const body = document.body;
 
-darkModeToggle.addEventListener('change', () => {
+darkModeToggle.addEventListener("change", () => {
   if (darkModeToggle.checked) {
-    body.classList.add('dark-mode');
-    circleBackground.setAttribute('fill', '#333');
+    body.classList.add("dark-mode");
+    circleBackground.setAttribute("fill", "#222"); // Darker background for the circle
   } else {
-    body.classList.remove('dark-mode');
-    circleBackground.setAttribute('fill', '#EAEAEA');
+    body.classList.remove("dark-mode");
+    circleBackground.setAttribute("fill", "#EAEAEA"); // Original light background
   }
 });
 
@@ -105,6 +105,9 @@ function init() {
   if (storedDarkMode === "true") {
     document.body.classList.add("dark-mode");
     darkModeToggle.checked = true;
+    circleBackground.setAttribute("fill", "#222"); // Set dark background on init
+  } else {
+    circleBackground.setAttribute("fill", "#EAEAEA"); // Set light background on init
   }
 
   // 2) Restore last used time or default
@@ -189,70 +192,92 @@ function runInterval() {
   }, 100);
 }
 
-
 function updateTimerTextAndArc(remaining) {
-    let fractionLeft = totalTime > 0 ? remaining / totalTime : 0;
-    if (fractionLeft < 0) fractionLeft = 0;
-    if (fractionLeft > 1) fractionLeft = 1;
-  
-    const angle = fractionLeft * 360;
-    circleForeground.setAttribute("d", describeArc(100, 100, 90, angle));
-    timerText.textContent = formatTime(remaining);
+  let fractionLeft = totalTime > 0 ? remaining / totalTime : 0;
+  if (fractionLeft < 0) fractionLeft = 0;
+  if (fractionLeft > 1) fractionLeft = 1;
+
+  const angle = fractionLeft * 360;
+  circleForeground.setAttribute("d", describeArc(100, 100, 90, angle));
+  timerText.textContent = formatTime(remaining);
+}
+
+function formatTime(seconds) {
+  if (seconds < 0) seconds = 0;
+  const mm = Math.floor(seconds / 60);
+  const ss = Math.floor(seconds % 60);
+  return mm + ":" + ss.toString().padStart(2, "0");
+}
+
+function describeArc(cx, cy, r, angleDeg) {
+  if (angleDeg <= 0) {
+    return "";
   }
-  
-  function formatTime(seconds) {
-    if (seconds < 0) seconds = 0;
-    const mm = Math.floor(seconds / 60);
-    const ss = Math.floor(seconds % 60);
-    return mm + ":" + ss.toString().padStart(2, "0");
-  }
-  
-  function describeArc(cx, cy, r, angleDeg) {
-    if (angleDeg <= 0) {
-      return "";
-    }
-    if (angleDeg >= 360) {
-      return `
+  if (angleDeg >= 360) {
+    return `
         M ${cx} ${cy - r}
         A ${r} ${r} 0 1 1 ${cx - 0.01} ${cy - r}
         Z
       `;
-    }
-    const largeArcFlag = angleDeg > 180 ? 1 : 0;
-    const sweepFlag = 1;
-    const angleRad = (Math.PI / 180) * angleDeg;
-  
-    const startX = cx;
-    const startY = cy - r;
-    const endX = cx + r * Math.sin(angleRad);
-    const endY = cy - r * Math.cos(angleRad);
-  
-    return `
+  }
+  const largeArcFlag = angleDeg > 180 ? 1 : 0;
+  const sweepFlag = 1;
+  const angleRad = (Math.PI / 180) * angleDeg;
+
+  const startX = cx;
+  const startY = cy - r;
+  const endX = cx + r * Math.sin(angleRad);
+  const endY = cy - r * Math.cos(angleRad);
+
+  return `
       M ${cx} ${cy}
       L ${startX} ${startY}
       A ${r} ${r} 0 ${largeArcFlag} ${sweepFlag} ${endX} ${endY}
       Z
     `;
-  }
-  
-  // Event Listeners
-  refreshButton.addEventListener("click", () => {
-    location.reload();
+}
+
+// Event Listeners
+refreshButton.addEventListener("click", () => {
+  location.reload();
+});
+
+// Dark mode toggle => toggles class, saves preference
+darkModeToggle.addEventListener("change", (e) => {
+  const isDark = e.target.checked;
+  document.body.classList.toggle("dark-mode", isDark);
+  localStorage.setItem(STORAGE_THEME_KEY, isDark);
+});
+
+// Tap the circle => Start/Pause/Resume
+circleArea.addEventListener("click", onCircleTap);
+
+// If user changes the dropdown while idle/finished
+minutesSelect.addEventListener("change", () => {
+    if (timerState === "idle" || timerState === "finished") {
+      updateTimerFromDropdown();
+    } else {
+      // If timer is running or paused, reset to idle with new time
+      clearInterval(countdownInterval);
+      disableScreenAwake();
+      setTimerState("idle");
+      updateTimerFromDropdown();
+      updateTimerTextAndArc(timeRemaining);
+    }
   });
   
-  // Dark mode toggle => toggles class, saves preference
-  darkModeToggle.addEventListener("change", (e) => {
-    const isDark = e.target.checked;
-    document.body.classList.toggle("dark-mode", isDark);
-    localStorage.setItem(STORAGE_THEME_KEY, isDark);
-  });
-  
-  // Tap the circle => Start/Pause/Resume
-  circleArea.addEventListener("click", onCircleTap);
-  
-  // If user changes the dropdown while idle/finished
-  minutesSelect.addEventListener("change", updateTimerFromDropdown);
-  secondsSelect.addEventListener("change", updateTimerFromDropdown);
-  
-  // Initialize on page load
-  init();
+secondsSelect.addEventListener("change", () => {
+if (timerState === "idle" || timerState === "finished") {
+    updateTimerFromDropdown();
+} else {
+    // If timer is running or paused, reset to idle with new time
+    clearInterval(countdownInterval);
+    disableScreenAwake();
+    setTimerState("idle");
+    updateTimerFromDropdown();
+    updateTimerTextAndArc(timeRemaining);
+}
+});
+
+// Initialize on page load
+init();
