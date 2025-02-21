@@ -1,0 +1,1 @@
+- I use `gptcommit install` for gpt commit messages.
