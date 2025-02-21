@@ -201,7 +201,12 @@ function updateTimerFromDropdown() {
 }
 
 function onCircleTap() {
-  if (timerState === "idle" || timerState === "finished") {
+  if (timerState === "finished") {
+    // When finished, tapping should return to idle state
+    setTimerState("idle");
+    updateTimerFromDropdown();
+    updateTimerTextAndArc(timeRemaining);
+  } else if (timerState === "idle") {
     startTimer();
     setTimerState("running");
     enableScreenAwake();
