@@ -46,11 +46,19 @@ const STORAGE_THEME_KEY = "darkMode"; // "true" or "false"
 // Timer states
 // (No icons if we prefer them empty)
 const stateColors = {
-  idle: "#007ACC", // Light Modern "blue"
-  running: "#267F99", // teal-ish
-  paused: "#9C4CAD", // purple
-  finished: "#B24747", // red-ish
-};
+    light: {
+      idle: "#4CAF50",     // A soft, muted green
+      running: "#4CAF50",     // A soft, muted green
+      paused: "#FFA726",  // A warm, muted amber
+      finished: "#EF5350",   // A soft, muted red
+    },
+    dark: {
+      idle: "#81C784",     // A lighter, more visible green for dark mode
+      running: "#81C784",     // A lighter, more visible green for dark mode
+      paused: "#FFB74D",  // A lighter amber for dark mode
+      finished: "#E57373",   // A lighter red for dark mode
+    }
+  };
 const stateIcons = {
   idle: "",
   running: "",
@@ -75,14 +83,16 @@ const timerText = document.getElementById("timerText");
 const circleBackground = document.getElementById("circleBackground");
 const body = document.body;
 
-darkModeToggle.addEventListener("change", () => {
+darkModeToggle.addEventListener('change', () => {
   if (darkModeToggle.checked) {
-    body.classList.add("dark-mode");
-    circleBackground.setAttribute("fill", "#222"); // Darker background for the circle
+    body.classList.add('dark-mode');
+    circleBackground.setAttribute('fill', '#222');
   } else {
-    body.classList.remove("dark-mode");
-    circleBackground.setAttribute("fill", "#EAEAEA"); // Original light background
+    body.classList.remove('dark-mode');
+    circleBackground.setAttribute('fill', '#EAEAEA');
   }
+  // Update current state color for new theme
+  setTimerState(timerState);
 });
 
 // Populate 0..59 for minutes & seconds
@@ -129,10 +139,12 @@ function init() {
 }
 
 function setTimerState(newState) {
-  timerState = newState;
-  circleForeground.setAttribute("fill", stateColors[newState]);
-  circleIcon.innerHTML = stateIcons[newState];
-}
+    timerState = newState;
+    const isDarkMode = document.body.classList.contains('dark-mode');
+    const themeColors = isDarkMode ? stateColors.dark : stateColors.light;
+    circleForeground.setAttribute("fill", themeColors[newState]);
+    circleIcon.innerHTML = stateIcons[newState];
+  }
 
 function updateTimerFromDropdown() {
   const mm = parseInt(minutesSelect.value, 10);
