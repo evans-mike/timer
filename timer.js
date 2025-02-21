@@ -412,7 +412,7 @@ minutesSelect.addEventListener("change", () => {
 });
 
 
-
+ 
 
 secondsSelect.addEventListener("change", () => {
   if (timerState === "idle" || timerState === "finished") {
