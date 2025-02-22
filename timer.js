@@ -398,34 +398,24 @@ darkModeToggle.addEventListener("change", (e) => {
 circleArea.addEventListener("click", onCircleTap);
 
 // If user changes the dropdown while idle/finished
-minutesSelect.addEventListener("change", () => {
-  if (timerState === "idle" || timerState === "finished") {
-    updateTimerFromDropdown();
-  } else {
-    // If timer is running or paused, reset to idle with new time
-    clearInterval(countdownInterval);
-    disableScreenAwake();
-    setTimerState("idle");
-    updateTimerFromDropdown();
-    updateTimerTextAndArc(timeRemaining);
-  }
-});
+function handleTimeChange() {
+  // Cancel any running animation
+  cancelAnimationFrame(animationFrameId);
+  // Cancel any running interval (though we're using animation frames now)
+  clearInterval(countdownInterval);
+  // Disable screen wake
+  disableScreenAwake();
+  // Reset to idle state
+  setTimerState("idle");
+  // Update the timer with new values
+  updateTimerFromDropdown();
+  // Update the visual display
+  updateTimerTextAndArc(timeRemaining);
+}
 
-
- 
-
-secondsSelect.addEventListener("change", () => {
-  if (timerState === "idle" || timerState === "finished") {
-    updateTimerFromDropdown();
-  } else {
-    // If timer is running or paused, reset to idle with new time
-    clearInterval(countdownInterval);
-    disableScreenAwake();
-    setTimerState("idle");
-    updateTimerFromDropdown();
-    updateTimerTextAndArc(timeRemaining);
-  }
-});
+// Update the event listeners to use the new function
+minutesSelect.addEventListener("change", handleTimeChange);
+secondsSelect.addEventListener("change", handleTimeChange);
 
 // Initialize on page load
 init();
